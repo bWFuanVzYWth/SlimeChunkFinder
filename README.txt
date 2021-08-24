@@ -1,1 +1,1 @@
-Finding the best position of MCBE slime chunks.
+Slime chunk finder for MCBE.
