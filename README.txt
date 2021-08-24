@@ -1,1 +1,1 @@
-A simple and efficient library for finding MCBE slime chunks.
+Finding the best position of MCBE slime chunks.
