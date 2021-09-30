@@ -1,85 +1,35 @@
-
 #include <stdint.h>
 #include <stdio.h>
 
-#define FC "slimechunk.bin" //file name of cache
-#define L 0x20000000		//bytes used by the cache
+#include "slimechunkfinder.h"
 
-#define FO "slimechunk.txt" //file name of output
-#define W 0x80000			//max valid chunk position
+uint8_t c[L] = {0};
 
-#define N 12
-
-void swap(int*, int*, int*, int*);
-
-void slime_map(int, int, int, int);
-void slime_finder(int, int, int, int, int);
-
-uint32_t get_seed(int32_t, int32_t);
-uint8_t is_slime_chunk(uint32_t);
-void write_cache(uint32_t, uint32_t);
-uint8_t read_cache(uint32_t);
-
-uint8_t c[L] = { 0 };
-
-
-
-int main(void) {
-	FILE* fp = NULL;
-	fp = fopen(FC, "rb");
-	if (fp == NULL) {
-		printf("%s no found. Trying to regenerate.\n", FC);
-		printf("Please wait about half an hour.\n");
-		write_cache(0, L);
-		fp = fopen(FC, "wb");
-		if (fp == NULL) {
-			printf("Can not write %s\n", FC);
-			goto error;
-		}
-		fwrite(c, 1, L, fp);
-		fclose(fp);
-		printf("%s has been regenerated.\n", FC);
-	}
-	fp = fopen(FC, "rb");
-	if (fp == NULL) {
-		printf("Can not read %s\n", FC);
-		goto error;
-	}
-
-	fread(c, 1, L, fp);
-	fclose(fp);
-
-	//slime_map(-10, -10, 10, 10);
-	//slime_finder(-625, -625, 625, 625, 13);
-	slime_finder(-W, -W, W, W, 40);
-
-	return 0;
-
-error:
-	printf("There seems to be something wrong :(\n");
-	return 1;
-}
-
-inline void swap(int* x1, int* z1, int* x2, int* z2) {
+inline void swap(int *x1, int *z1, int *x2, int *z2)
+{
 	int t;
-	if (*x1 > *x2) {
+	if (*x1 > *x2)
+	{
 		t = *x1;
 		*x1 = *x2;
 		*x2 = t;
 	}
-	if (*z1 > *z2) {
+	if (*z1 > *z2)
+	{
 		t = *z1;
 		*z1 = *z2;
 		*z2 = t;
 	}
 }
 
-
-void slime_map(int x1, int z1, int x2, int z2) {
+void slime_map(int x1, int z1, int x2, int z2)
+{
 	swap(&x1, &z1, &x2, &z2);
 
-	for (int z = z1; z < z2; z++) {
-		for (int x = x1; x < x2; x++) {
+	for (int z = z1; z < z2; z++)
+	{
+		for (int x = x1; x < x2; x++)
+		{
 			uint8_t b = read_cache(get_seed(x, z));
 			putchar(b ? '#' : ' ');
 			putchar(' ');
@@ -88,36 +38,44 @@ void slime_map(int x1, int z1, int x2, int z2) {
 	}
 }
 
-uint8_t f2[N][2 * W + N] = { 0 };
-uint8_t f1[2 * W + N] = { 0 };
+uint8_t f2[MAX_N][2 * MAX_W + MAX_N] = {0};
+uint8_t f1[2 * MAX_W + MAX_N] = {0};
 
-void slime_finder(int x1, int z1, int x2, int z2, int thr) {
+void slime_finder(int x1, int z1, int x2, int z2, int N, int thr)
+{
 
-	swap(&x1, &z1, &x2, &z2);
+	swap(&x1, &z1, &x2, &z2); //给输入的坐标范围排序
 
 	const int X = x2 - x1;
 	const int Z = z2 - z1;
 
-	if (X > 2 * W || Z > 2 * W) {
+	if (X > 2 * MAX_W || Z > 2 * MAX_W)
+	{
 		printf("Too large to find.");
 		return;
 	}
 
-	for (int z = 0; z < Z; z++) {
-		int m = z % N;
+	for (int x = 0; x < X; x++)
+	{
+		int m = x % N;
 		int num = 0;
-		for (int x = 0; x < N; x++) {
-			num += f1[x];
+		int xpos = x + x1;
+		uint32_t tmp_get_seed = xpos * 0x1f1f1f1f;
+		for (int z = 0; z < N; z++)
+		{
+			num += f1[z];
 		}
-		for (int x = N; x < X; x++) {
-			int xpos = x + x1;
+		for (int z = N; z < Z; z++)
+		{
 			int zpos = z + z1;
-			f1[x] -= f2[m][x];
-			f2[m][x] = read_cache(get_seed(xpos, zpos));
-			f1[x] += f2[m][x];
+			uint32_t seed = tmp_get_seed ^ zpos; //get_seed已被手动内联，优化性能
 
-			num -= f1[x - N];
-			num += f1[x];
+			f1[z] -= f2[m][z];
+			f2[m][z] = read_cache(seed);
+			f1[z] += f2[m][z];
+
+			num -= f1[z - N];
+			num += f1[z];
 
 			if (num > thr)
 				printf("x=%d,z=%d,n=%d\n", xpos * 16, zpos * 16, num);
@@ -125,12 +83,13 @@ void slime_finder(int x1, int z1, int x2, int z2, int thr) {
 	}
 }
 
-
-inline uint32_t get_seed(int32_t x, int32_t z) {
+inline uint32_t get_seed(int32_t x, int32_t z)
+{
 	return x * 0x1f1f1f1f ^ z;
 }
 
-inline uint8_t is_slime_chunk(uint32_t s) {
+inline uint8_t is_slime_chunk(uint32_t s)
+{
 	uint32_t m = 0x6c078965 * (s ^ s >> 30) + 1;
 	s = s & 0x80000000 | m & 0x7fffffff;
 	for (int i = 2; i < 398; i++)
@@ -146,11 +105,14 @@ inline uint8_t is_slime_chunk(uint32_t s) {
 	return (uint8_t)(!(m % 10));
 }
 
-void write_cache(uint32_t min, uint32_t max) {
+void write_cache(uint32_t min, uint32_t max)
+{
 	uint32_t n = min << 3;
-	for (int i = min; i < max; i++) {
+	for (int i = min; i < max; i++)
+	{
 		uint8_t t = 0;
-		for (int j = 7; j >= 0; j--) {
+		for (int j = 7; j >= 0; j--)
+		{
 			t |= is_slime_chunk(n) << (j);
 			n++;
 		}
@@ -158,6 +120,45 @@ void write_cache(uint32_t min, uint32_t max) {
 	}
 }
 
-uint8_t read_cache(uint32_t s) {
+uint8_t read_cache(uint32_t s)
+{
 	return (c[s >> 3] & (0x80 >> (s & 7))) != 0;
+}
+
+int slime_initialization(void)
+{
+	FILE *fp = NULL;
+
+	fp = fopen(FC, "rb");
+	if (fp == NULL)
+	{
+		printf("%s no found. Trying to regenerate.\n", FC);
+		printf("Please wait about half an hour.\n");
+		write_cache(0, L);
+		fp = fopen(FC, "wb");
+		if (fp == NULL)
+		{
+			printf("Can not write %s\n", FC);
+			goto error;
+		}
+		fwrite(c, 1, L, fp);
+		fclose(fp);
+		printf("%s has been regenerated.\n", FC);
+	}
+
+	fp = fopen(FC, "rb");
+	if (fp == NULL)
+	{
+		printf("Can not read %s\n", FC);
+		goto error;
+	}
+
+	fread(c, 1, L, fp);
+	fclose(fp);
+
+	return 0;
+
+error:
+	printf("There seems to be something wrong in initialization.\n");
+	return 1;
 }
