@@ -54,6 +54,8 @@ void slime_finder(int x1, int z1, int x2, int z2, int N, int thr)
 		return;
 	}
 
+	clock_t time0 = clock();
+
 	for (int x = 0; x < X; x++)
 	{
 		int m = x % N;
@@ -80,7 +82,12 @@ void slime_finder(int x1, int z1, int x2, int z2, int N, int thr)
 				printf("x=%d,z=%d,n=%d\n", xpos * 16, zpos * 16, num);
 		}
 	}
-	printf("All chunk has been found.\n");
+
+	clock_t time1 = clock();
+	uint64_t all_chunks = ((uint64_t)X) * ((uint64_t)Z);
+	double time = (double)(time1 - time0) / 1000.0;
+	uint64_t speed = (uint64_t)(((double)all_chunks) / time);
+	printf("%lld chunks has been check in %.3lfs, %lld chunks/s.\n", all_chunks, time, speed);
 }
 
 inline uint32_t get_seed(int32_t x, int32_t z)
@@ -136,7 +143,9 @@ int slime_initialization(void)
 		case 'y':
 			printf("Please wait about 30 min.\n");
 
+			clock_t time0 = clock();
 			write_cache(0, L);
+			clock_t time1 = clock();
 
 			fp = fopen(FC, "wb");
 			if (fp == NULL)
@@ -146,7 +155,8 @@ int slime_initialization(void)
 			}
 			fwrite(c, 1, L, fp);
 			fclose(fp);
-			printf("%s has been regenerated.\n", FC);
+			uint64_t time = (uint64_t)(time1 - time0) / 1000;
+			printf("%s has been regenerated in %lld s.\n", FC, time);
 			break;
 		default:
 			printf("Running without %s\n", FC);

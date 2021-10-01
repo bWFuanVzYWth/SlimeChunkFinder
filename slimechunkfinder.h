@@ -1,6 +1,7 @@
 #ifndef SLIMECHUNKFINDER
 #define SLIMECHUNKFINDER
 
+#include <time.h>
 #include <stdint.h>
 #include <stdio.h>
 

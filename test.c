@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "slimechunkfinder.h"
 
 int main(void)
