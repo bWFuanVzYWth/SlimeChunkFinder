@@ -1,7 +1,6 @@
-#include <stdint.h>
-#include <stdio.h>
-
 #include "slimechunkfinder.h"
+
+uint8_t (*isslimechunk)(uint32_t s);
 
 uint8_t c[L] = {0};
 
@@ -30,7 +29,7 @@ void slime_map(int x1, int z1, int x2, int z2)
 	{
 		for (int x = x1; x < x2; x++)
 		{
-			uint8_t b = read_cache(get_seed(x, z));
+			uint8_t b = isslimechunk(get_seed(x, z));
 			putchar(b ? '#' : ' ');
 			putchar(' ');
 		}
@@ -51,7 +50,7 @@ void slime_finder(int x1, int z1, int x2, int z2, int N, int thr)
 
 	if (X > 2 * MAX_W || Z > 2 * MAX_W)
 	{
-		printf("Too large to find.");
+		printf("Too large to find.\n");
 		return;
 	}
 
@@ -71,7 +70,7 @@ void slime_finder(int x1, int z1, int x2, int z2, int N, int thr)
 			uint32_t seed = tmp_get_seed ^ zpos; //get_seed已被手动内联，优化性能
 
 			f1[z] -= f2[m][z];
-			f2[m][z] = read_cache(seed);
+			f2[m][z] = isslimechunk(seed);
 			f1[z] += f2[m][z];
 
 			num -= f1[z - N];
@@ -81,6 +80,7 @@ void slime_finder(int x1, int z1, int x2, int z2, int N, int thr)
 				printf("x=%d,z=%d,n=%d\n", xpos * 16, zpos * 16, num);
 		}
 	}
+	printf("All chunk has been found.\n");
 }
 
 inline uint32_t get_seed(int32_t x, int32_t z)
@@ -111,11 +111,8 @@ void write_cache(uint32_t min, uint32_t max)
 	for (int i = min; i < max; i++)
 	{
 		uint8_t t = 0;
-		for (int j = 7; j >= 0; j--)
-		{
-			t |= is_slime_chunk(n) << (j);
-			n++;
-		}
+		for (int j = 0; j < 8; j++)
+			t |= is_slime_chunk(n + j) << (7 - j);
 		c[i] = t;
 	}
 }
@@ -132,18 +129,31 @@ int slime_initialization(void)
 	fp = fopen(FC, "rb");
 	if (fp == NULL)
 	{
-		printf("%s no found. Trying to regenerate.\n", FC);
-		printf("Please wait about half an hour.\n");
-		write_cache(0, L);
-		fp = fopen(FC, "wb");
-		if (fp == NULL)
+		printf("%s no found. Regenerate? y/n\n", FC);
+		char use_cache = getchar();
+		switch (use_cache)
 		{
-			printf("Can not write %s\n", FC);
-			goto error;
+		case 'y':
+			printf("Please wait about 30 min.\n");
+
+			write_cache(0, L);
+
+			fp = fopen(FC, "wb");
+			if (fp == NULL)
+			{
+				printf("Can not write %s\n", FC);
+				goto error;
+			}
+			fwrite(c, 1, L, fp);
+			fclose(fp);
+			printf("%s has been regenerated.\n", FC);
+			break;
+		default:
+			printf("Running without %s\n", FC);
+			isslimechunk = is_slime_chunk;
+			putchar('\n');
+			return 0;
 		}
-		fwrite(c, 1, L, fp);
-		fclose(fp);
-		printf("%s has been regenerated.\n", FC);
 	}
 
 	fp = fopen(FC, "rb");
@@ -152,13 +162,19 @@ int slime_initialization(void)
 		printf("Can not read %s\n", FC);
 		goto error;
 	}
+	else
+	{
+		fread(c, 1, L, fp);
+		fclose(fp);
 
-	fread(c, 1, L, fp);
-	fclose(fp);
-
-	return 0;
+		printf("%s has been found and loaded.\n", FC);
+		isslimechunk = read_cache;
+		putchar('\n');
+		return 0;
+	}
 
 error:
 	printf("There seems to be something wrong in initialization.\n");
+	putchar('\n');
 	return 1;
 }
