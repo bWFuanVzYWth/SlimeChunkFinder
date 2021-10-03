@@ -91,7 +91,6 @@ void slime_map(int x1, int z1, int x2, int z2)
 {
     swap(&x1, &x2);
     swap(&z1, &z2);
-
     int dx = x2 - x1 + 1;
     int dz = z2 - z1 + 1;
 
@@ -115,44 +114,40 @@ void slime_map(int x1, int z1, int x2, int z2)
 
 void slime_finder(int x1, int z1, int x2, int z2, int n, int thr)
 {
-    time_t t0, t1;
-
     swap(&x1, &x2);
     swap(&z1, &z2);
-
     int dx = x2 - x1 + 1;
     int dz = z2 - z1 + 1;
 
+    time_t t0, t1;
     t0 = clock();
 
 #pragma omp parallel
     {
         int thread_num = omp_get_num_threads();
         int thread_id = omp_get_thread_num();
-
         int x_w = dx / thread_num + ((dx % thread_num) != 0);
         int x_1 = x1 + thread_id * x_w;
         int x_2 = x_1 + x_w - 1;
-        x_2 = x_2 > x2 ? x2 : x_2;
+        x_2 = (x_2 > x2 ? x2 : x_2) + n;
+        printf("thread %d : from %d to %d.\n", thread_id, x_1, x_2 - n);
 
-        printf("thread %d : from %d to %d.\n", thread_id, x_1, x_2);
-
-        x2 += n;
+#pragma omp barrier
 
         uint8_t *f1 = (uint8_t *)calloc(dz, 1);
         uint8_t *f2 = (uint8_t *)calloc(n * dz, 1);
-
         for (int x = 0; x < (x_2 - x_1); x++)
         {
             int m = x % n;
             int num = 0;
+
             int xpos = x + x_1;
             uint32_t tmp_get_seed = xpos * 0x1f1f1f1f;
-            int tmp_a = m * dz;
+            uint32_t tmp_a = m * dz;
+
             for (int z = 0; z < n; z++)
-            {
                 num += f1[z];
-            }
+
             for (int z = n; z < dz; z++)
             {
                 int zpos = z + z1;
@@ -166,14 +161,13 @@ void slime_finder(int x1, int z1, int x2, int z2, int n, int thr)
                 num -= f1[z - n];
                 num += f1[z];
 
-                if (num > thr)
+                if (num >= thr)
                     printf("x=%d,z=%d,n=%d\n", xpos * 16, zpos * 16, num);
             }
         }
         free(f1);
         free(f2);
     }
-
     t1 = clock();
 
     double time = (double)(t1 - t0) / 1000.0;
