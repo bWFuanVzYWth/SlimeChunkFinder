@@ -1,6 +1,6 @@
 #include "slimechunk.h"
 
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE 1024
 #define BLOCK_COUNT (4294967296 / BLOCK_SIZE)
 
 #define N 624
@@ -13,33 +13,12 @@ uint32_t to_seed(int32_t x, int32_t z) {
     return ((uint32_t)x * 0x1f1f1f1f) ^ (uint32_t)z;
 }
 
-uint32_t is_slime_chunk(uint32_t s) {
-    uint32_t mt, y;
-
-    mt = (1812433253UL * (s ^ (s >> 30)) + 1);
-
-    y = (s & UPPER_MASK) | (mt & LOWER_MASK);
-
-    for(uint32_t i = 2; i <= M; i++)
-        mt = (1812433253UL * (mt ^ (mt >> 30)) + i);
-
-    y = mt ^ (y >> 1) ^ ((-(y & 0x1UL)) & MATRIX_A);
-
-    y ^= (y >> 11);
-    y ^= (y << 7) & 0x9d2c5680UL;
-    y ^= (y << 15) & 0xefc60000UL;
-    y ^= (y >> 18);
-
-    return !(y % 10);
-}
-
 void is_slime_chunk_simd(uint32_t* s) {
     uint32_t mt[BLOCK_SIZE];
-    uint32_t y[BLOCK_SIZE];
 
     for(uint32_t n = 0; n < BLOCK_SIZE; n++) {
         mt[n] = (1812433253UL * (s[n] ^ (s[n] >> 30)) + 1);
-        y[n] = (s[n] & UPPER_MASK) | (mt[n] & LOWER_MASK);
+        s[n] = (s[n] & UPPER_MASK) | (mt[n] & LOWER_MASK);
     }
 
     for(uint32_t i = 2; i <= M; i++) {
@@ -49,14 +28,14 @@ void is_slime_chunk_simd(uint32_t* s) {
     }
 
     for(uint32_t n = 0; n < BLOCK_SIZE; n++) {
-        y[n] = mt[n] ^ (y[n] >> 1) ^ ((-(y[n] & 0x1UL)) & MATRIX_A);
+        s[n] = mt[n] ^ (s[n] >> 1) ^ ((-(s[n] & 0x1UL)) & MATRIX_A);
 
-        y[n] ^= (y[n] >> 11);
-        y[n] ^= (y[n] << 7) & 0x9d2c5680UL;
-        y[n] ^= (y[n] << 15) & 0xefc60000UL;
-        y[n] ^= (y[n] >> 18);
+        s[n] ^= (s[n] >> 11);
+        s[n] ^= (s[n] << 7) & 0x9d2c5680UL;
+        s[n] ^= (s[n] << 15) & 0xefc60000UL;
+        s[n] ^= (s[n] >> 18);
 
-        s[n] = !(y[n] % 10);
+        s[n] = !(s[n] % 10);
     }
 }
 
