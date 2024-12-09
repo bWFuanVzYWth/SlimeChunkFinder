@@ -3,10 +3,10 @@ use std::simd::u32x32;
 
 use rayon::prelude::*;
 
-pub const SEED_BITWIZE: usize = 32;
-pub const SEED_MIN: usize = 0;
-pub const SEED_MAX: usize = 1 << SEED_BITWIZE;
-pub const LUT_LENGTH: usize = (SEED_MAX - SEED_MIN) / SEED_BITWIZE;
+const SEED_BITWIZE: usize = 32;
+const SEED_MIN: usize = 0;
+const SEED_MAX: usize = 1 << SEED_BITWIZE;
+const LUT_LENGTH: usize = (SEED_MAX - SEED_MIN) / SEED_BITWIZE;
 
 pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
     pub const WORK_TOTAL: usize = 4096; // 必须是2的整数次幂，最好约等于sqrt(核数 * 单线程总时间 / 调度时间)
