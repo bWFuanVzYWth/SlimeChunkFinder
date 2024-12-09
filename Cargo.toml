@@ -1,0 +1,14 @@
+cargo-features = ["profile-rustflags"]
+
+[package]
+name = "slime_chunk_finder"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rayon = "1.10.0"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+rustflags = ["-C", "target-cpu=native"]
