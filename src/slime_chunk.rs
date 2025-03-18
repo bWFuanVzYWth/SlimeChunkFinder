@@ -78,10 +78,10 @@ pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
     lut
 }
 
-pub fn is_slime_chunk(lut: &Box<[u32; LUT_LENGTH]>, seed: u32) -> bool {
+pub fn is_slime_chunk(lut: &[u32; LUT_LENGTH], seed: u32) -> bool {
     lut[seed as usize / SEED_BITWIZE] & (1 << (seed % SEED_BITWIZE as u32)) != 0
 }
 
 pub fn get_seed(x: i32, z: i32) -> u32 {
-    x as u32 * 0x1f1f1f1f ^ z as u32
+    (x as u32 * 0x1f1f1f1f) ^ z as u32
 }
