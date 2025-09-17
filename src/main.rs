@@ -18,16 +18,11 @@
     clippy::nursery                // 启用实验性的 Lint
 )]
 
-use std::time::Instant;
-
 mod slime_chunk;
 
 fn main() {
     // 初始化：生成/读取lut
-    let init_timer_start = Instant::now();
     let lut = slime_chunk::init_lut();
-    let init_timer = init_timer_start.elapsed().as_micros();
-    println!("初始化耗时：{}s", (init_timer as f64) / 1000000.0);
 
     // test
     for z in -10..10 {

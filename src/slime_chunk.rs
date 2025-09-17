@@ -1,5 +1,6 @@
 use std::array;
 use std::simd::u32x32;
+use std::time::Instant;
 
 use rayon::prelude::*;
 
@@ -9,9 +10,9 @@ const SEED_MAX: usize = 1 << SEED_BITWISE;
 const LUT_LENGTH: usize = (SEED_MAX - SEED_MIN) / SEED_BITWISE;
 
 pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
-    pub const WORK_TOTAL: usize = 4096; // 必须是2的整数次幂，最好约等于sqrt(核数 * 单线程总时间 / 调度时间)
-    pub const WORK_LENGTH: usize = LUT_LENGTH / WORK_TOTAL;
     let mut lut: Box<[u32; LUT_LENGTH]> = Box::new([0; LUT_LENGTH]);
+
+    let init_timer_start = Instant::now();
 
     let offset_u32x32 = u32x32::from_array(array::from_fn(|i| (i * SEED_BITWISE) as u32));
     // 分块: 多线程
@@ -21,6 +22,9 @@ pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
             let seed_base = chunk_i * (SEED_BITWISE * SEED_BITWISE);
             process_chunk(offset_u32x32, seed_base, chunk);
         });
+
+    let init_timer = init_timer_start.elapsed().as_micros();
+    println!("初始化耗时：{}s", (init_timer as f64) / 1000000.0);
 
     lut
 }
