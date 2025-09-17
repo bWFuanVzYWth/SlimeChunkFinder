@@ -41,7 +41,7 @@ pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
                         let m0 = m;
                         m = u32x32::splat(1812433253) * (m ^ m >> 30) + u32x32::splat(1);
                         let m1 = m;
-                        for i in 2..M + 1 {
+                        for i in 2..=M {
                             m = u32x32::splat(1812433253) * (m ^ m >> 30) + u32x32::splat(i);
                         }
                         let mm = m;
@@ -78,10 +78,10 @@ pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
     lut
 }
 
-pub fn is_slime_chunk(lut: &[u32; LUT_LENGTH], seed: u32) -> bool {
+pub const fn is_slime_chunk(lut: &[u32; LUT_LENGTH], seed: u32) -> bool {
     lut[seed as usize / SEED_BITWIZE] & (1 << (seed % SEED_BITWIZE as u32)) != 0
 }
 
-pub fn get_seed(x: i32, z: i32) -> u32 {
+pub const fn get_seed(x: i32, z: i32) -> u32 {
     (x as u32 * 0x1f1f1f1f) ^ z as u32
 }
