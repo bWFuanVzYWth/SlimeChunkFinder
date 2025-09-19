@@ -1,6 +1,5 @@
 use std::array;
 use std::simd::u32x32;
-use std::time::Instant;
 
 use rayon::prelude::*;
 
@@ -9,36 +8,32 @@ const SEED_MIN: usize = 0;
 const SEED_MAX: usize = 1 << SEED_BITWISE;
 const LUT_LENGTH: usize = (SEED_MAX - SEED_MIN) / SEED_BITWISE;
 
-pub fn init_lut() -> Box<[u32; LUT_LENGTH]> {
-    let mut lut: Box<[u32; LUT_LENGTH]> = Box::new([0; LUT_LENGTH]);
-
-    let init_timer_start = Instant::now();
-
-    let offset_u32x32 = u32x32::from_array(array::from_fn(|i| (i * SEED_BITWISE) as u32));
-    // 分块: 多线程
-    lut.par_chunks_mut(SEED_BITWISE)
-        .enumerate()
-        .for_each(|(chunk_i, chunk)| {
+// 分块：多线程
+pub fn init_lut() -> Vec<u32> {
+    (0..(LUT_LENGTH / SEED_BITWISE))
+        .into_par_iter()
+        .map(|chunk_i| {
             let seed_base = chunk_i * (SEED_BITWISE * SEED_BITWISE);
-            process_chunk(offset_u32x32, seed_base, chunk);
-        });
-
-    let init_timer = init_timer_start.elapsed().as_micros();
-    println!("初始化耗时：{}s", (init_timer as f64) / 1000000.0);
-
-    lut
+            process_chunk(seed_base)
+        })
+        .collect::<Vec<_>>()
+        .concat()
 }
 
-fn process_chunk(offset_u32x32: std::simd::Simd<u32, 32>, seed_base: usize, chunk: &mut [u32]) {
-    // 分组: offset = 32
-    for offset in 0..SEED_BITWISE {
-        const M: u32 = 397;
-        const MATRIX_A: u32 = 0x9908b0df;
-        const UPPER_MASK: u32 = 0x80000000;
-        const LOWER_MASK: u32 = 0x7fffffff;
+// 分组：simd
+fn process_chunk(seed_base: usize) -> [u32; 32] {
+    const M: u32 = 397;
+    const MATRIX_A: u32 = 0x9908_b0df;
+    const UPPER_MASK: u32 = 0x8000_0000;
+    const LOWER_MASK: u32 = 0x7fff_ffff;
 
+    let mut result = u32x32::splat(0);
+
+    for offset in 0..SEED_BITWISE {
         // 每1024个种子是1个chunk，内部交错分组（总共32组，每组32个）
-        let seed = u32x32::splat((seed_base + offset) as u32) + offset_u32x32;
+        let seed = u32x32::from_array(array::from_fn(|i| {
+            (seed_base + offset + i * SEED_BITWISE) as u32
+        }));
 
         // 初始化丐版mt19937的内部状态
         let mut m = seed;
@@ -56,28 +51,22 @@ fn process_chunk(offset_u32x32: std::simd::Simd<u32, 32>, seed_base: usize, chun
         y = mm ^ (y >> 1) ^ (y_mask & u32x32::splat(MATRIX_A));
 
         y ^= y >> 11;
-        y ^= y << 07 & u32x32::splat(0x9d2c5680);
+        y ^= y << 7 & u32x32::splat(0x9d2c5680);
         y ^= y << 15 & u32x32::splat(0xefc60000);
         y ^= y >> 18;
 
         // 判断是否是10的整数倍
-        let mut result = y % u32x32::splat(10);
-        result = (result - u32x32::splat(1)) >> (SEED_BITWISE - 1) as u32;
+        let mut is_slime_chunk = y % u32x32::splat(10);
+        is_slime_chunk = (is_slime_chunk - u32x32::splat(1)) >> (SEED_BITWISE - 1) as u32;
 
-        // 移位
-        result <<= u32x32::splat(offset as u32);
-
-        // 写入lut
-        chunk
-            .iter_mut()
-            .zip(u32x32::to_array(result).iter())
-            .for_each(|(chunk_elem, result_elem)| {
-                *chunk_elem |= result_elem;
-            });
+        // 压位
+        result |= is_slime_chunk << u32x32::splat(offset as u32);
     }
+
+    result.to_array()
 }
 
-pub const fn is_slime_chunk(lut: &[u32; LUT_LENGTH], seed: u32) -> bool {
+pub const fn is_slime_chunk(lut: &[u32], seed: u32) -> bool {
     lut[seed as usize / SEED_BITWISE] & (1 << (seed % SEED_BITWISE as u32)) != 0
 }
 
