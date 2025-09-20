@@ -18,17 +18,17 @@ pub struct ChunkPosition {
     pub z: i32,
 }
 
-impl From<BlockPosition> for ChunkPosition {
-    fn from(bp: BlockPosition) -> Self {
+impl From<&BlockPosition> for ChunkPosition {
+    fn from(bp: &BlockPosition) -> Self {
         Self {
-            x: floor_to_multiple_of_16(bp.x),
-            z: floor_to_multiple_of_16(bp.z),
+            x: floor_to_multiple_of_16(bp.x) / 16,
+            z: floor_to_multiple_of_16(bp.z) / 16,
         }
     }
 }
 
-impl From<ChunkPosition> for BlockPosition {
-    fn from(val: ChunkPosition) -> Self {
+impl From<&ChunkPosition> for BlockPosition {
+    fn from(val: &ChunkPosition) -> Self {
         Self {
             x: val.x * 16,
             z: val.z * 16,
