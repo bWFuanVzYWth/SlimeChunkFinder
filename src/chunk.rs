@@ -13,9 +13,37 @@ const fn floor_to_multiple_of_16(n: i32) -> i32 {
     n & !15
 }
 
+#[derive(Clone)]
 pub struct ChunkPosition {
     pub x: i32,
     pub z: i32,
+}
+
+pub struct ChunkRange {
+    pub from: ChunkPosition,
+    pub dx: i32,
+    pub dz: i32,
+}
+
+impl ChunkRange {
+    pub fn new(from: &ChunkPosition, to: &ChunkPosition) -> ChunkRange {
+        let x_min = from.x.min(to.x);
+        let x_max = from.x.max(to.x);
+        let z_min = from.z.min(to.z);
+        let z_max = from.z.max(to.z);
+
+        let dx = x_max - x_min + 1;
+        let dz = z_max - z_min + 1;
+
+        ChunkRange {
+            from: ChunkPosition{
+                x: x_min,
+                z: z_min,
+            },
+            dx,
+            dz,
+        }
+    }
 }
 
 impl From<&BlockPosition> for ChunkPosition {

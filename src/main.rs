@@ -20,7 +20,7 @@ use std::time::Instant;
 
 use crate::{
     chunk::{BlockPosition, ChunkPosition},
-    finder::Finder,
+    finder::{Finder, Problem},
 };
 
 mod chunk;
@@ -54,32 +54,24 @@ fn main() {
     let init_timer = init_timer_start.elapsed().as_micros();
     println!("初始化耗时：{}s", (init_timer as f64) / 1000000.0);
 
-    // test
-    // for z in -10..10 {
-    //     for x in -10..10 {
-    //         let chunk_position = ChunkPosition { x, z };
-    //         print!(
-    //             "{}",
-    //             if lut.is_slime_chunk(chunk_position.seed()) {
-    //                 "# "
-    //             } else {
-    //                 ". "
-    //             }
-    //         );
-    //     }
-    //     println!();
-    // }
+    // let from = BlockPosition {
+    //     x: -8388608,
+    //     z: -8388608,
+    // };
+    // let to = BlockPosition {
+    //     x: 8388608,
+    //     z: 8388608,
+    // };
 
-    let start = BlockPosition {
-        x: -8388608,
-        z: -8388608,
+    let from = BlockPosition {
+        x: -100000,
+        z: -100000,
     };
-    let mut finder = Finder::new(ChunkPosition::from(&start), 1048576, &lut);
-    for _ in 0..1048576 {
-        let solutions = finder.find(&MASK, 55);
-        for solution in solutions {
-            println!("{}", solution);
-        }
-        finder = finder.slide(&lut);
-    }
+    let to = BlockPosition {
+        x: 100000,
+        z: 100000,
+    };
+
+    let problem = Problem::new(&from, &to);
+    problem.solve(&lut, &MASK, 50);
 }
