@@ -4,12 +4,12 @@ pub struct BlockPosition {
 }
 
 impl BlockPosition {
-    pub fn new(x: i32, z: i32) -> Self {
+    pub const fn new(x: i32, z: i32) -> Self {
         Self { x, z }
     }
 }
 
-fn floor_to_multiple_of_16(n: i32) -> i32 {
+const fn floor_to_multiple_of_16(n: i32) -> i32 {
     n & !15
 }
 
@@ -27,11 +27,11 @@ impl From<BlockPosition> for ChunkPosition {
     }
 }
 
-impl Into<BlockPosition> for ChunkPosition {
-    fn into(self) -> BlockPosition {
-        BlockPosition {
-            x: self.x * 16,
-            z: self.z * 16,
+impl From<ChunkPosition> for BlockPosition {
+    fn from(val: ChunkPosition) -> Self {
+        Self {
+            x: val.x * 16,
+            z: val.z * 16,
         }
     }
 }

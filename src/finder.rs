@@ -12,7 +12,7 @@ struct Finder {
 }
 
 impl Finder {
-    fn slide(self, lut: SlimeChunkLut) -> Self {
+    fn slide(self, lut: &SlimeChunkLut) -> Self {
         let base_position = ChunkPosition {
             x: self.base_position.x + 1,
             ..self.base_position
@@ -26,12 +26,7 @@ impl Finder {
                     z: base_position.z + z_offset as i32,
                     ..base_position
                 };
-                (sub_window << 1)
-                    | if lut.is_slime_chunk(position.seed()) {
-                        1
-                    } else {
-                        0
-                    }
+                (sub_window << 1) | u64::from(lut.is_slime_chunk(position.seed()))
             })
             .collect();
         Self {
