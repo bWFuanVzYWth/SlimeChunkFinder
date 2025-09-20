@@ -34,11 +34,11 @@ impl Display for Solution {
 }
 
 impl Finder {
-    pub fn new(start: ChunkPosition, width: usize, lut: &SlimeChunkLut) -> Self {
+    pub fn new(start: &ChunkPosition, width: usize, lut: &SlimeChunkLut) -> Self {
         let mut tmp = Self {
             base_position: ChunkPosition {
                 x: start.x - FINDER_WINDOW_Z,
-                ..start
+                ..start.clone()
             },
             window: vec![0; width],
         };
@@ -144,7 +144,7 @@ impl Problem {
                     dz: m as i32,
                     ..self.range
                 },
-            })
+            });
         }
 
         sub_problems
@@ -153,15 +153,12 @@ impl Problem {
     pub fn solve(self, lut: &SlimeChunkLut, mask: &[u64], slime_chunk_count: u32) {
         let sub_problems = self.break_down(mask);
         sub_problems.par_iter().for_each(|sub_problem| {
-            let mut finder = Finder::new(
-                sub_problem.range.from.clone(),
-                sub_problem.range.dz as usize,
-                lut,
-            );
+            let mut finder =
+                Finder::new(&sub_problem.range.from, sub_problem.range.dz as usize, lut);
             for _ in 0..sub_problem.range.dx {
                 let solutions = finder.find(mask, slime_chunk_count);
                 for solution in solutions {
-                    println!("{}", solution);
+                    println!("{solution}");
                 }
                 finder = finder.slide(lut);
             }

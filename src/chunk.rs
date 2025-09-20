@@ -3,12 +3,6 @@ pub struct BlockPosition {
     pub z: i32,
 }
 
-impl BlockPosition {
-    pub const fn new(x: i32, z: i32) -> Self {
-        Self { x, z }
-    }
-}
-
 const fn floor_to_multiple_of_16(n: i32) -> i32 {
     n & !15
 }
@@ -26,7 +20,7 @@ pub struct ChunkRange {
 }
 
 impl ChunkRange {
-    pub fn new(from: &ChunkPosition, to: &ChunkPosition) -> ChunkRange {
+    pub fn new(from: &ChunkPosition, to: &ChunkPosition) -> Self {
         let x_min = from.x.min(to.x);
         let x_max = from.x.max(to.x);
         let z_min = from.z.min(to.z);
@@ -35,11 +29,8 @@ impl ChunkRange {
         let dx = x_max - x_min + 1;
         let dz = z_max - z_min + 1;
 
-        ChunkRange {
-            from: ChunkPosition{
-                x: x_min,
-                z: z_min,
-            },
+        Self {
+            from: ChunkPosition { x: x_min, z: z_min },
             dx,
             dz,
         }

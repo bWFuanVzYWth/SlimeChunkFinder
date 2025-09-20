@@ -77,5 +77,3 @@ impl SlimeChunkLut {
         self.lut[seed as usize / SEED_BITWISE] & (1 << (seed % SEED_BITWISE as u32)) != 0
     }
 }
-
-
