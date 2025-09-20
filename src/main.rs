@@ -18,6 +18,11 @@
 // )]
 
 use std::time::Instant;
+
+use crate::chunk::ChunkPosition;
+
+mod chunk;
+mod finder;
 mod slime_chunk;
 
 fn main() {
@@ -30,9 +35,10 @@ fn main() {
     // test
     for z in -10..10 {
         for x in -10..10 {
+            let chunk_position = ChunkPosition { x, z };
             print!(
                 "{}",
-                if lut.is_slime_chunk(slime_chunk::get_seed(x, z)) {
+                if lut.is_slime_chunk(chunk_position.seed()) {
                     "# "
                 } else {
                     ". "

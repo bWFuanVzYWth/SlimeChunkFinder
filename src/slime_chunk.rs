@@ -78,6 +78,4 @@ impl SlimeChunkLut {
     }
 }
 
-pub const fn get_seed(x: i32, z: i32) -> u32 {
-    (x as u32 * 0x1f1f_1f1f) ^ z as u32
-}
+
