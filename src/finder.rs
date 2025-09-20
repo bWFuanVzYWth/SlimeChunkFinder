@@ -7,13 +7,13 @@ use crate::{
     slime_chunk::SlimeChunkLut,
 };
 
-const FINDER_WINDOW_HEIGHT: i32 = 64;
+const FINDER_WINDOW_Z: i32 = 64;
 
 pub struct Finder {
-    /// 滑动窗口第一个元素最低位对应的区块坐标
+    /// The chunk coordinates corresponding to the lowest bit of the first element of the sliding window
     base_position: ChunkPosition,
-    /// 滑动窗口，记录一片区域内的史莱姆区块地图\
-    /// x跨度就是数组长度，z跨度固定为64
+    /// Sliding window, recording a map of slime chunks in an area\
+    /// x span is the array length, z span is fixed at 64
     window: Vec<u64>,
 }
 
@@ -37,12 +37,12 @@ impl Finder {
     pub fn new(start: ChunkPosition, width: usize, lut: &SlimeChunkLut) -> Self {
         let mut tmp = Self {
             base_position: ChunkPosition {
-                x: start.x - FINDER_WINDOW_HEIGHT,
+                x: start.x - FINDER_WINDOW_Z,
                 ..start
             },
             window: vec![0; width],
         };
-        for _ in 0..FINDER_WINDOW_HEIGHT {
+        for _ in 0..FINDER_WINDOW_Z {
             tmp = tmp.slide(lut);
         }
         tmp
@@ -85,7 +85,7 @@ impl Finder {
                     Some(Solution {
                         position: ChunkPosition {
                             z: self.base_position.z + z_offset as i32,
-                            x: self.base_position.x - mask.len() as i32,
+                            x: self.base_position.x,
                         },
                         slime_chunk_count,
                     })
@@ -102,16 +102,11 @@ pub struct Problem {
 }
 
 impl Problem {
-    pub fn new(
-        block_from: &BlockPosition,
-        block_to: &BlockPosition,
-    ) -> Self {
+    pub fn new(block_from: &BlockPosition, block_to: &BlockPosition) -> Self {
         let chunk_from = block_from.into();
         let chunk_to = block_to.into();
         let chunk_range = ChunkRange::new(&chunk_from, &chunk_to);
-        Self {
-            range: chunk_range,
-        }
+        Self { range: chunk_range }
     }
 
     pub fn break_down(self, mask: &[u64]) -> Vec<Self> {
@@ -119,19 +114,19 @@ impl Problem {
 
         // 让finder.window.len()对齐N
         let width = N - mask.len() + 1;
-        let n = self.range.dx as usize / width;
-        let m = self.range.dx as usize % width;
+        let n = self.range.dz as usize / width;
+        let m = self.range.dz as usize % width;
 
         let mut sub_problems = (0..n)
             .map(|i| {
-                let x = self.range.from.x + (i * width) as i32;
+                let z = self.range.from.z + (i * width) as i32;
                 Self {
                     range: ChunkRange {
                         from: ChunkPosition {
-                            x,
+                            z,
                             ..self.range.from
                         },
-                        dx: width as i32,
+                        dz: width as i32,
                         ..self.range
                     },
                 }
@@ -139,14 +134,14 @@ impl Problem {
             .collect::<Vec<_>>();
 
         if m > 0 {
-            let x = self.range.from.x + (n * width) as i32;
+            let z = self.range.from.z + (n * width) as i32;
             sub_problems.push(Self {
                 range: ChunkRange {
                     from: ChunkPosition {
-                        x,
+                        z,
                         ..self.range.from
                     },
-                    dx: m as i32,
+                    dz: m as i32,
                     ..self.range
                 },
             })
@@ -160,10 +155,10 @@ impl Problem {
         sub_problems.par_iter().for_each(|sub_problem| {
             let mut finder = Finder::new(
                 sub_problem.range.from.clone(),
-                sub_problem.range.dx as usize,
+                sub_problem.range.dz as usize,
                 lut,
             );
-            for _ in 0..sub_problem.range.dz {
+            for _ in 0..sub_problem.range.dx {
                 let solutions = finder.find(mask, slime_chunk_count);
                 for solution in solutions {
                     println!("{}", solution);
@@ -171,5 +166,39 @@ impl Problem {
                 finder = finder.slide(lut);
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_problem_break_down() {
+        let problem = Problem {
+            range: ChunkRange {
+                from: ChunkPosition { x: 0, z: 0 },
+                dx: 4000,
+                dz: 4096,
+            },
+        };
+
+        let mask = vec![0xFF; 32];
+        let sub_problems = problem.break_down(&mask);
+
+        // 检查子问题数量
+        assert_eq!(sub_problems.len(), 3);
+
+        // 检查第一个子问题
+        assert_eq!(sub_problems[0].range.from.z, 0);
+        assert_eq!(sub_problems[0].range.dz, 2017);
+
+        // 检查第二个子问题
+        assert_eq!(sub_problems[1].range.from.z, 2017);
+        assert_eq!(sub_problems[1].range.dz, 2017);
+
+        // 检查第三个子问题
+        assert_eq!(sub_problems[2].range.from.z, 4034);
+        assert_eq!(sub_problems[2].range.dz, 62);
     }
 }

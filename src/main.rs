@@ -18,10 +18,7 @@
 
 use std::time::Instant;
 
-use crate::{
-    chunk::{BlockPosition, ChunkPosition},
-    finder::{Finder, Problem},
-};
+use crate::{chunk::BlockPosition, finder::Problem};
 
 mod chunk;
 mod finder;
@@ -52,7 +49,7 @@ fn main() {
     let init_timer_start = Instant::now();
     let lut = slime_chunk::SlimeChunkLut::new();
     let init_timer = init_timer_start.elapsed().as_micros();
-    println!("初始化耗时：{}s", (init_timer as f64) / 1000000.0);
+    println!("Initialization time: {}s", (init_timer as f64) / 1000000.0);
 
     // let from = BlockPosition {
     //     x: -8388608,
@@ -64,14 +61,18 @@ fn main() {
     // };
 
     let from = BlockPosition {
-        x: -100000,
-        z: -100000,
+        x: -10000,
+        z: -10000,
     };
     let to = BlockPosition {
-        x: 100000,
-        z: 100000,
+        x: 10000,
+        z: 10000,
     };
 
     let problem = Problem::new(&from, &to);
-    problem.solve(&lut, &MASK, 50);
+    // 添加计时功能
+    let solve_timer_start = Instant::now();
+    problem.solve(&lut, &MASK, 45);
+    let solve_timer = solve_timer_start.elapsed().as_micros();
+    println!("Solving time: {}s", (solve_timer as f64) / 1000000.0);
 }
