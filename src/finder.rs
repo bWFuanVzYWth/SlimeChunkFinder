@@ -10,9 +10,9 @@ use crate::{
 const FINDER_WINDOW_Z: i32 = 64;
 
 pub struct Finder {
-    /// The chunk coordinates corresponding to the lowest bit of the first element of the sliding window
+    /// The chunk coordinates corresponding to the lowest bit of the first element of the sliding window.
     base_position: ChunkPosition,
-    /// Sliding window, recording a map of slime chunks in an area\
+    /// Sliding window, recording a map of slime chunks in an area.\
     /// x span is the array length, z span is fixed at 64
     window: Vec<u64>,
 }
@@ -97,16 +97,25 @@ impl Finder {
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub struct Problem {
+    slime_chunk_count: u32,
     range: ChunkRange,
 }
 
 impl Problem {
-    pub fn new(block_from: &BlockPosition, block_to: &BlockPosition) -> Self {
+    pub fn new(
+        block_from: &BlockPosition,
+        block_to: &BlockPosition,
+        slime_chunk_count: u32,
+    ) -> Self {
         let chunk_from = block_from.into();
         let chunk_to = block_to.into();
         let chunk_range = ChunkRange::new(&chunk_from, &chunk_to);
-        Self { range: chunk_range }
+        Self {
+            range: chunk_range,
+            slime_chunk_count,
+        }
     }
 
     pub fn break_down(self, mask: &[u64]) -> Vec<Self> {
@@ -129,6 +138,7 @@ impl Problem {
                         dz: width as i32,
                         ..self.range
                     },
+                    ..self
                 }
             })
             .collect::<Vec<_>>();
@@ -144,19 +154,20 @@ impl Problem {
                     dz: m as i32,
                     ..self.range
                 },
+                ..self
             });
         }
 
         sub_problems
     }
 
-    pub fn solve(self, lut: &SlimeChunkLut, mask: &[u64], slime_chunk_count: u32) {
+    pub fn solve(self, lut: &SlimeChunkLut, mask: &[u64]) {
         let sub_problems = self.break_down(mask);
         sub_problems.par_iter().for_each(|sub_problem| {
             let mut finder =
                 Finder::new(&sub_problem.range.from, sub_problem.range.dz as usize, lut);
             for _ in 0..sub_problem.range.dx {
-                let solutions = finder.find(mask, slime_chunk_count);
+                let solutions = finder.find(mask, sub_problem.slime_chunk_count);
                 for solution in solutions {
                     println!("{solution}");
                 }
@@ -175,27 +186,51 @@ mod tests {
         let problem = Problem {
             range: ChunkRange {
                 from: ChunkPosition { x: 0, z: 0 },
-                dx: 4000,
+                dx: 2048,
                 dz: 4096,
             },
+            slime_chunk_count: 45,
         };
 
         let mask = vec![0xFF; 32];
         let sub_problems = problem.break_down(&mask);
 
-        // 检查子问题数量
         assert_eq!(sub_problems.len(), 3);
 
-        // 检查第一个子问题
-        assert_eq!(sub_problems[0].range.from.z, 0);
-        assert_eq!(sub_problems[0].range.dz, 2017);
+        assert_eq!(
+            sub_problems[0],
+            Problem {
+                range: ChunkRange {
+                    from: ChunkPosition { x: 0, z: 0 },
+                    dx: 2048,
+                    dz: 2017,
+                },
+                slime_chunk_count: 45
+            }
+        );
 
-        // 检查第二个子问题
-        assert_eq!(sub_problems[1].range.from.z, 2017);
-        assert_eq!(sub_problems[1].range.dz, 2017);
+        assert_eq!(
+            sub_problems[1],
+            Problem {
+                range: ChunkRange {
+                    from: ChunkPosition { x: 0, z: 2017 },
+                    dx: 2048,
+                    dz: 2017,
+                },
+                slime_chunk_count: 45
+            }
+        );
 
-        // 检查第三个子问题
-        assert_eq!(sub_problems[2].range.from.z, 4034);
-        assert_eq!(sub_problems[2].range.dz, 62);
+        assert_eq!(
+            sub_problems[2],
+            Problem {
+                range: ChunkRange {
+                    from: ChunkPosition { x: 0, z: 4034 },
+                    dx: 2048,
+                    dz: 62,
+                },
+                slime_chunk_count: 45
+            }
+        );
     }
 }

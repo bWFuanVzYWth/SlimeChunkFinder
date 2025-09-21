@@ -7,12 +7,13 @@ const fn floor_to_multiple_of_16(n: i32) -> i32 {
     n & !15
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ChunkPosition {
     pub x: i32,
     pub z: i32,
 }
 
+#[derive(PartialEq, Debug)]
 pub struct ChunkRange {
     pub from: ChunkPosition,
     pub dx: i32,
