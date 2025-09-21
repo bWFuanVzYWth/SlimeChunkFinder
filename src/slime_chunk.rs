@@ -2,10 +2,11 @@ use std::array;
 use std::simd::u32x64;
 
 use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
+
+use bincode::{Decode, Encode};
 
 const SEED_BITWISE: usize = 32;
 const BLOCK_BITWISE: usize = 2048;
@@ -13,7 +14,7 @@ const BLOCK_BITWISE: usize = 2048;
 const BLOCK_LENGTH: usize = BLOCK_BITWISE / SEED_BITWISE;
 const LUT_LENGTH: usize = (u32::MAX as usize + 1) / SEED_BITWISE;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Encode, Decode)]
 pub struct SlimeChunkLut {
     lut: Vec<u32>,
 }
@@ -78,20 +79,26 @@ impl SlimeChunkLut {
     }
 
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn std::error::Error>> {
+        let config = get_config();
         let file = File::create(path)?;
-        let writer = BufWriter::new(file);
-        bincode::serialize_into(writer, self)?;
+        let mut writer = BufWriter::new(file);
+        bincode::encode_into_std_write(self, &mut writer, config)?;
         Ok(())
     }
 
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+        let config = get_config();
         let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        let lut = bincode::deserialize_from(reader)?;
+        let mut reader = BufReader::new(file);
+        let lut = bincode::decode_from_std_read(&mut reader, config)?;
         Ok(lut)
     }
 
     pub fn is_slime_chunk(&self, seed: u32) -> bool {
         self.lut[seed as usize / SEED_BITWISE] & (1 << (seed % SEED_BITWISE as u32)) != 0
     }
+}
+
+fn get_config() -> bincode::config::Configuration {
+    bincode::config::standard()
 }

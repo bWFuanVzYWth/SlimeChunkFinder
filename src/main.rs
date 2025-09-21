@@ -69,25 +69,25 @@ fn main() {
         (init_timer as f64) / 1_000_000.0
     );
 
-    let from = BlockPosition {
-        x: -8_388_608,
-        z: -8_388_608,
-    };
-    let to = BlockPosition {
-        x: 8_388_608,
-        z: 8_388_608,
-    };
-    let problem = Problem::new(&from, &to, 60);
-
     // let from = BlockPosition {
-    //     x: -131072,
-    //     z: -131072,
+    //     x: -8_388_608,
+    //     z: -8_388_608,
     // };
     // let to = BlockPosition {
-    //     x: 131072,
-    //     z: 131072,
+    //     x: 8_388_608,
+    //     z: 8_388_608,
     // };
-    // let problem = Problem::new(&from, &to, 50);
+    // let problem = Problem::new(&from, &to, 60);
+
+    let from = BlockPosition {
+        x: -131072,
+        z: -131072,
+    };
+    let to = BlockPosition {
+        x: 131072,
+        z: 131072,
+    };
+    let problem = Problem::new(&from, &to, 50);
 
     let solve_timer_start = Instant::now();
     problem.solve(&lut, &MASK);
