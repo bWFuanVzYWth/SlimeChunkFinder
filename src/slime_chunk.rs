@@ -79,7 +79,7 @@ impl SlimeChunkLut {
     }
 
     pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn std::error::Error>> {
-        let config = get_config();
+        let config = slime_chunk_lut_config();
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
         bincode::encode_into_std_write(self, &mut writer, config)?;
@@ -87,7 +87,7 @@ impl SlimeChunkLut {
     }
 
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
-        let config = get_config();
+        let config = slime_chunk_lut_config();
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
         let lut = bincode::decode_from_std_read(&mut reader, config)?;
@@ -99,6 +99,9 @@ impl SlimeChunkLut {
     }
 }
 
-fn get_config() -> bincode::config::Configuration {
+fn slime_chunk_lut_config(
+) -> bincode::config::Configuration<bincode::config::LittleEndian, bincode::config::Fixint> {
     bincode::config::standard()
+        .with_little_endian()
+        .with_fixed_int_encoding()
 }
