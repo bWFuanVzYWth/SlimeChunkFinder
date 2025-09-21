@@ -53,7 +53,7 @@ impl Finder {
         for (z_offset, sub_window) in self.window.iter_mut().enumerate() {
             let position = ChunkPosition {
                 z: self.base_position.z + z_offset as i32,
-                x: self.base_position.x + FINDER_WINDOW_Z - 1,
+                ..self.base_position
             };
             *sub_window = (*sub_window << 1) | u64::from(lut.is_slime_chunk(position.seed()));
         }

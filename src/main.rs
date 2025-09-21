@@ -18,6 +18,7 @@
 // clippy::nursery                // 启用实验性的 Lint
 // )]
 
+use std::path::Path;
 use std::time::Instant;
 
 use crate::{chunk::BlockPosition, finder::Problem};
@@ -49,7 +50,19 @@ const MASK: [u64; 17] = [
 fn main() {
     // 初始化：生成/读取lut
     let init_timer_start = Instant::now();
-    let lut = slime_chunk::SlimeChunkLut::new();
+    let lut_path = "slime_chunk.lut";
+
+    let lut = if Path::new(lut_path).exists() {
+        println!("Loading LUT from file...");
+        slime_chunk::SlimeChunkLut::load_from_file(lut_path).expect("Failed to load LUT from file")
+    } else {
+        println!("Generating LUT...");
+        let lut = slime_chunk::SlimeChunkLut::new();
+        lut.save_to_file(lut_path)
+            .expect("Failed to save LUT to file");
+        lut
+    };
+
     let init_timer = init_timer_start.elapsed().as_micros();
     println!(
         "Initialization time: {}s",
@@ -64,17 +77,17 @@ fn main() {
         x: 8_388_608,
         z: 8_388_608,
     };
-    let problem = Problem::new(&from, &to, 55);
+    let problem = Problem::new(&from, &to, 60);
 
     // let from = BlockPosition {
-    //     x: -10000,
-    //     z: -10000,
+    //     x: -131072,
+    //     z: -131072,
     // };
     // let to = BlockPosition {
-    //     x: 10000,
-    //     z: 10000,
+    //     x: 131072,
+    //     z: 131072,
     // };
-    // let problem = Problem::new(&from, &to, 45);
+    // let problem = Problem::new(&from, &to, 50);
 
     let solve_timer_start = Instant::now();
     problem.solve(&lut, &MASK);
