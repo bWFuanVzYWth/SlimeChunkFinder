@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, hint::unlikely};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -43,57 +43,43 @@ impl Finder {
             window: vec![0; width],
         };
         for _ in 0..FINDER_WINDOW_Z {
-            tmp = tmp.slide(lut);
+            tmp.slide(lut);
         }
         tmp
     }
 
-    pub fn slide(self, lut: &SlimeChunkLut) -> Self {
-        let base_position = ChunkPosition {
-            x: self.base_position.x + 1,
-            ..self.base_position
-        };
-        let window = self
-            .window
-            .into_iter()
-            .enumerate()
-            .map(|(z_offset, sub_window)| {
-                let position = ChunkPosition {
-                    z: base_position.z + z_offset as i32,
-                    ..base_position
-                };
-                (sub_window << 1) | u64::from(lut.is_slime_chunk(position.seed()))
-            })
-            .collect();
-        Self {
-            base_position,
-            window,
+    pub fn slide(&mut self, lut: &SlimeChunkLut) {
+        self.base_position.x += 1;
+        for (z_offset, sub_window) in self.window.iter_mut().enumerate() {
+            let position = ChunkPosition {
+                z: self.base_position.z + z_offset as i32,
+                x: self.base_position.x + FINDER_WINDOW_Z - 1,
+            };
+            *sub_window = (*sub_window << 1) | u64::from(lut.is_slime_chunk(position.seed()));
         }
     }
 
-    pub fn find(&self, mask: &[u64], min_count: u32) -> Vec<Solution> {
+    pub fn find(&self, mask: &[u64], min_count: u32) {
         self.window
             .windows(mask.len())
             .enumerate()
-            .filter_map(|(z_offset, window)| {
+            .for_each(|(z_offset, window)| {
                 let slime_chunk_count = window
                     .iter()
                     .zip(mask)
                     .map(|(scan_line, scan_mask)| (scan_line & scan_mask).count_ones())
                     .sum();
-                if slime_chunk_count > min_count {
-                    Some(Solution {
+                if unlikely(slime_chunk_count > min_count) {
+                    let solution = Solution {
                         position: ChunkPosition {
                             z: self.base_position.z + z_offset as i32,
                             x: self.base_position.x,
                         },
                         slime_chunk_count,
-                    })
-                } else {
-                    None
+                    };
+                    println!("{solution}");
                 }
             })
-            .collect::<Vec<_>>()
     }
 }
 
@@ -167,11 +153,8 @@ impl Problem {
             let mut finder =
                 Finder::new(&sub_problem.range.from, sub_problem.range.dz as usize, lut);
             for _ in 0..sub_problem.range.dx {
-                let solutions = finder.find(mask, sub_problem.slime_chunk_count);
-                for solution in solutions {
-                    println!("{solution}");
-                }
-                finder = finder.slide(lut);
+                finder.find(mask, sub_problem.slime_chunk_count);
+                finder.slide(lut);
             }
         });
     }

@@ -12,3 +12,4 @@ rayon = "1.10.0"
 lto = "fat"
 codegen-units = 1
 rustflags = ["-C", "target-cpu=native"]
+debug = true

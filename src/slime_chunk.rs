@@ -38,6 +38,7 @@ impl SlimeChunkLut {
         let mut result = u32x64::splat(0);
 
         for offset in 0..(SEED_BITWISE as u32) {
+            // 用simd批量计算，种子间距32，这样可以直接快速压位
             let seed = u32x64::from_array(array::from_fn(|i| {
                 seed_base + offset + (i as u32) * (SEED_BITWISE as u32)
             }));
@@ -66,7 +67,7 @@ impl SlimeChunkLut {
             let mut is_slime_chunk = y % u32x64::splat(10);
             is_slime_chunk = (is_slime_chunk - u32x64::splat(1)) >> (SEED_BITWISE - 1) as u32;
 
-            // 压位
+            // 压位成bitmap
             result |= is_slime_chunk << u32x64::splat(offset);
         }
 

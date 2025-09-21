@@ -1,4 +1,6 @@
 #![feature(portable_simd)]
+#![feature(likely_unlikely)]
+
 // #![warn(
 // clippy::unwrap_used,           // 禁止使用 `unwrap`
 // clippy::expect_used,           // 禁止使用 `expect`
